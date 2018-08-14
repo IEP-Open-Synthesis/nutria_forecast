@@ -13,12 +13,12 @@ Nutria damage wetland habitats and water control infrastructure through their fe
 -	Predict when the range of nutria will likely reach areas of management interest in the Delta 
 
 ## Schedule of Milestones:
-*December 2018* Form team, Set up collaborations  
-*June 2019* Compile habitat data  
-*December 2019* Complete habitat model & report  
-*June 2020* Complete dispersal simulation  
-*December 2020* Complete tools for management use & dispersal report  
+*December 2018* - Form team, Set up collaborations  
+*June 2019* - Compile habitat data  
+*December 2019* - Complete habitat model & report  
+*June 2020* - Complete dispersal simulation  
+*December 2020* - Complete tools for management use & dispersal report  
 
 ![nutria in water eating a root](https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Myocastor_coypus_L%27Isle-Adam_03.jpg/320px-Myocastor_coypus_L%27Isle-Adam_03.jpg)  
-Invasive nutria feed on the roots of plants, which damages wetland habitats. 
+Invasive nutria feed on the roots of plants, which damages wetland habitats.  
 *photo: Tsaag Valren/Wikimedia.org*
