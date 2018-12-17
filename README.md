@@ -19,6 +19,6 @@ Nutria damage wetland habitats and water control infrastructure through their fe
 *June 2020* - Complete dispersal simulation  
 *December 2020* - Complete tools for management use & dispersal report  
 
-![nutria in water eating a root](https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Myocastor_coypus_L%27Isle-Adam_03.jpg/320px-Myocastor_coypus_L%27Isle-Adam_03.jpg)  
+![nutria in water eating a root](https://github.com/IEP-Open-Synthesis/nutria_forecast/blob/master/images/pic_nutria_water.jpg)  
 Invasive nutria feed on the roots of plants, which damages wetland habitats.  
 *photo: Tsaag Valren/Wikimedia.org*
