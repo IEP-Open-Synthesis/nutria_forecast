@@ -5,8 +5,10 @@
 #    This code is part of a draft analysis and it will be updated as the project continues. 
 #    This code is shared with no guarantees about its accuracy or usefulness.
 # License: CC-BY 2.0
-# Caution: this code downloads and manipulates large files. Be aware that it uses considerable memory resources and time.
+# Caution: This code downloads and manipulates large files. 
+#          Be aware that it uses considerable memory resources and time.
 
+# 1. SETUP ####
 # Load Libraries ####
 library(sp)
 library(rgdal)
@@ -24,16 +26,18 @@ dl_zip <- function(loc_url){
   gc() #clean up memory
 }
 
-# GET DATA ####
+# 2. GET DATA ####
 # Download Data #
 # Data used here is from the USGS National Hydrography Dataset.
 # Additional information can be found here: https://www.sciencebase.gov/catalog/item/5ab25ecde4b081f61ab45e04
 # This is the CA state-wide shapefile. It's huge, but it was what was available during the shutdown when the 
 #  National Map servers went down.
 
-# Flowlines
-dl_zip("https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHD/State/HighResolution/Shape/NHD_H_California_State_Shape.zip")
+# Check if the file already exists in the working directory. If it doesn't, download it.
+#   Yes, the zip file is actually named "Shape" when you download it.
+if(list.files(path = "./", pattern = "Shape") != "Shape") dl_zip("https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHD/State/HighResolution/Shape/NHD_H_California_State_Shape.zip")
 
+# Flowlines ####
 # Import shapefiles
 shp.list <- list.files(path = "./Shape", pattern = "NHDFlowline(?:[0-9]+|).shp$")
 for(i in 1:length(shp.list))
@@ -80,12 +84,35 @@ gc() #isn't triggering a memory dump. Not sure why. Seems like it should be enou
 length(flowline.small@data$OBJECTID[which(flowline.small@data$FCode %in% c("46000", "46003", "46006", "46007", "33600", "33601", "33603", "33400"))])
 wl <- flowline.small[which(flowline.small@data$FCode %in% c("46000", "46003", "46006", "46007", "33600", "33601", "33603", "33400")),]
 # wl = "water lines" because we're going to need to add water bodies, too.
-# includes canal/ditch, connector, stream/river. NOT coastline yet.
+# includes canal/ditch, connector, stream/river. NOT coastline (yet).
 
 
-# Waterbodies
+# Waterbodies ####
+wb <- readOGR(dsn = "./Shape", layer = "NHDWaterbody")
+# plot(wb)
+# Select waterbodies in HUCS that are within our geographical range:
+wb <- wb[which(substring(wb@data$ReachCode, 1, 4) %in% c(1802, 1803, 1804, 1805)),]
+summary(wb@data$FCode)
+# All of the FCodes seem reasonable to keep for now.
+# 36100 (playa) & 46600 (swamp/marsh) might be IDed by the vegetation layer, though.
+# Other categories: 49...Estuary 39...Lake/Pond 43...Reservoir
 
 
+# 3. Create Water Indices ####
+# Proximity to water?
+#  -- include flowlines and waterbodies
+#  -- depending on pixel size, all pixels might have water
+# Water "density" in a pixel?
+#  -- area of pixel that overlaps flowlines and water bodies?
 
+# Create rasters of each type of water
+#  -- Use the raster from vegetation.R as the base so they all match up in terms of extent, resolution, origin, and CRS
+#  -- Instructions near the end of this blog post:
+#     http://www.mikemeredith.net/blog/1212_GIS_layer_for_Distance_from.htm
+# merge() combines rasters using functions like mean or sum.
+# raster::distance() computes distance to the nearest non-NA cell
+# gdistance package might also be useful
 
-
+# X. Questions to Answer ####
+#  -- Should we include intermittent and/or ephemeral water? Or should we only include perennial water sources?
+#   Right now the code includes perennial and intermittent/ephemeral, but water pretty much covers the whole area
