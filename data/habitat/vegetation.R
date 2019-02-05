@@ -42,12 +42,16 @@ dl_zip("ftp://ftp.wildlife.ca.gov/BDB/GIS/BIOS/Public_Datasets/2600_2699/ds2632.
 # subset(ogrDrivers(), grepl("GDB", name))
 # print(ogrListLayers("./ds2676.gdb"))
 suisun <- readOGR(dsn="./ds2676.gdb",layer="ds2676")  #ds2676.gdb
-summary(suisun)
-plot(suisun)
+# summary(suisun)
+# plot(suisun)
 # print(ogrListLayers("./ds292.gdb"))
 delta <- readOGR(dsn="./ds292.gdb",layer="ds292")
-summary(delta)
-summary(delta@data$NVCSMG)
+# summary(delta)
+# summary(delta@data$NVCSMG)
+crs(delta)
+# CRS arguments:
+#   +proj=aea +lat_1=34 +lat_2=40.5 +lat_0=0 +lon_0=-120 +x_0=0 +y_0=-4000000
+# +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0 
 
 print(ogrListLayers("./v3_final/ds2632.gdb"))
 # readOGR makes an error, but st_read works
@@ -55,7 +59,7 @@ print(ogrListLayers("./v3_final/ds2632.gdb"))
 #                   require_geomType = "wkbPolygon") #this file has some geomType = NA.
 valley <- st_read(dsn="./v3_final/ds2632.gdb",layer="ds2632_ftp", type = 3) #type=3 tells it to make polygons
 valley <- as(valley, "Spatial") #convert back to sp
-summary(valley)
+# summary(valley)
 
 # CLEAN UP DATA ####
 # Make crs the same for all shapefiles
@@ -74,8 +78,8 @@ valley@data[-c(1:2, 22:25, 28:29, 32:33)] <- NULL
 
 # Visualize Data #
 # helpful blog: http://www.nickeubank.com/wp-content/uploads/2015/10/RGIS3_MakingMaps_part1_mappingVectorData.html
-plot(delta)
-plot(suisun, add = TRUE)
+# plot(delta)
+# plot(suisun, add = TRUE)
 
 
 # 0. CHOOSE VEG CLASSES OR MAKE NEW VEG CLASSES THAT ARE USEFUL FOR NUTRIA ####
@@ -92,7 +96,7 @@ plot(suisun, add = TRUE)
 # 1. Create a single shapefile #### 
 #  because identical(unique(suisun$CWHRCode), unique(delta$CWHRCODE)) = FALSE
 veg.pol <- bind(suisun, delta, valley)
-
+extent(veg.pol)
 
 # 2. CONVERT VEG SHAPEFILE TO RASTER ####
 # 2.1 Make the extents the same - i.e. the grand min and max of extents for all shapefiles
@@ -100,6 +104,11 @@ veg.pol <- bind(suisun, delta, valley)
 extent(suisun)
 extent(delta)
 extent(veg.pol)
+# class       : Extent 
+# xmin        : -213096.5 
+# xmax        : 128190.3 
+# ymin        : -345869.4 
+# ymax        : 289941.6 
 
 veg.rast <- raster(extent(veg.pol), resolution = 1000) #1000 m pixels
 
@@ -110,7 +119,8 @@ crs(veg.rast) <- crs(delta) #crs has to match for raster and points
 
 # 2.2 Convert veg polygon to raster
 veg <- rasterize(veg.pol, veg.rast, field = veg.pol$CWHRCODE)
-image(veg, col = rev(rainbow(length(unique(values(veg))))))
+# image(veg, col = rev(rainbow(length(unique(values(veg))))))
+
 # s.rast <- rasterize(suisun, veg, field = suisun$CWHRCode)
 # d.rast <- rasterize(delta, veg, field = delta$CWHRCODE) #why don't names match across shapefiles?!
 # 1.3 Combine the rasters into a single veg raster layer
@@ -122,7 +132,7 @@ levels(veg.pol$CWHRCODE)
 # from QGIS... rivers = 21 (RIV), suisun bay = 9 (LAC, EST)
 # NEED TO RECODE ALL WATER?
 
-writeRaster(veg, "veg.tiff", overwrite = TRUE)
+writeRaster(veg, "veg.tiff", overwrite = FALSE)
 # It's easier to pick out values in QGIS or ArcMap
 
 
