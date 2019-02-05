@@ -82,20 +82,55 @@ gc() #isn't triggering a memory dump. Not sure why. Seems like it should be enou
 # List of FCode values: https://nhd.usgs.gov/userGuide/Robohelpfiles/NHD_User_Guide/Feature_Catalog/Hydrography_Dataset/Complete_FCode_List.htm
 #  Codes for pipelines & underground conduit all start with "42" and nothing else does.
 length(flowline.small@data$OBJECTID[which(flowline.small@data$FCode %in% c("46000", "46003", "46006", "46007", "33600", "33601", "33603", "33400"))])
-wl <- flowline.small[which(flowline.small@data$FCode %in% c("46000", "46003", "46006", "46007", "33600", "33601", "33603", "33400")),]
+#wl <- flowline.small[which(flowline.small@data$FCode %in% c("46000", "46003", "46006", "46007", "33600", "33601", "33603", "33400")),]
+# Just the perennial flowlines:
+wl <- flowline.small[which(flowline.small@data$FCode %in% c("33600", "33601", "33603", "33400", "46006")),]
+
 # wl = "water lines" because we're going to need to add water bodies, too.
 # includes canal/ditch, connector, stream/river. NOT coastline (yet).
 
+# Make CRS match the others
+wl <- spTransform(wl, crs(delta))
+writeOGR(obj = wl, dsn = ".", layer = "waterlines", driver = "ESRI Shapefile")
+
+rm(flowline.small)
+gc()
 
 # Waterbodies ####
 wb <- readOGR(dsn = "./Shape", layer = "NHDWaterbody")
 # plot(wb)
 # Select waterbodies in HUCS that are within our geographical range:
-wb <- wb[which(substring(wb@data$ReachCode, 1, 4) %in% c(1802, 1803, 1804, 1805)),]
+#  Just keep perennial water body types
+#  Now includes all reservoirs (43...)!
+wb <- wb[which(substring(wb@data$ReachCode, 1, 4) %in% c(1802, 1803, 1804, 1805) & 
+                 (wb@data$FCode %in% c("39004", "36100", "46600", "46601", "46602", "49300") | 
+                    substring(wb@data$FCode, 1, 2) == "43")),]
+
 summary(wb@data$FCode)
+wb@data$FCode <- droplevels(wb@data$FCode)
 # All of the FCodes seem reasonable to keep for now.
 # 36100 (playa) & 46600 (swamp/marsh) might be IDed by the vegetation layer, though.
 # Other categories: 49...Estuary 39...Lake/Pond 43...Reservoir
+
+# Classify water bodies into understandable categories:
+wb@data$water.type <- NA
+wb@data$water.type[which(substring(wb@data$FCode, 1, 2) == "36")] <- "Playa"
+wb@data$water.type[which(substring(wb@data$FCode, 1, 2) == "39")] <- "Lake-Pond"
+wb@data$water.type[which(substring(wb@data$FCode, 1, 2) == "49")] <- "Estuary"
+wb@data$water.type[which(substring(wb@data$FCode, 1, 2) == "46")] <- "Swamp-Marsh"
+wb@data$water.type[which(substring(wb@data$FCode, 1, 2) == "43")] <- "Reservoir"
+#wb@data$water.type[which(substring(wb@data$FCode, 1, 2) == "37")] <- "Ice"
+wb@data$water.type <- as.factor(wb@data$water.type)
+levels(wb@data$water.type)
+
+plot(wb, col = wb@data$water.type, border = wb@data$water.type, main = "Waterbodies")
+legend("topleft", lwd = 2, 
+       col = 1:length(unique(wb@data$water.type)), 
+       legend = levels(wb@data$water.type),
+       title = "Type", cex = 0.75)
+
+# Make CRS match the others
+wb <- spTransform(wb, crs(delta))
 
 
 # 3. Create Water Indices ####
@@ -106,12 +141,21 @@ summary(wb@data$FCode)
 #  -- area of pixel that overlaps flowlines and water bodies?
 
 # Create rasters of each type of water
-#  -- Use the raster from vegetation.R as the base so they all match up in terms of extent, resolution, origin, and CRS
+#  -- Use the mask raster as the base so they all match up in terms of extent, resolution, origin, and CRS AND you can mask it all in one step.
+#  Use veg.rast (an empty raster) if you don't want to run all of the veg code! (Today's lesson!)
+#  Lesson 2: if the CRS doesn't match, you get a raster full of NAs
+identical(crs(wb), crs(habmask.rast))
+identical(crs(wl), crs(habmask.rast))
+wl.rast <- rasterize(wl, habmask.rast, field = wl@data$FCode, mask = TRUE, fun = "count") #Friday 4:41
+wb.rast <- rasterize(wb, habmask.rast, field = wb@data$FCode, mask = TRUE, fun = "count")
 #  -- Instructions near the end of this blog post:
 #     http://www.mikemeredith.net/blog/1212_GIS_layer_for_Distance_from.htm
 # merge() combines rasters using functions like mean or sum.
 # raster::distance() computes distance to the nearest non-NA cell
 # gdistance package might also be useful
+
+image(wb.rast)
+image(distance(wb.rast))
 
 # X. Questions to Answer ####
 #  -- Should we include intermittent and/or ephemeral water? Or should we only include perennial water sources?
